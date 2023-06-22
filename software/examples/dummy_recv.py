@@ -1,5 +1,6 @@
 from socket import *
 
+
 def recv():
     server_ip = "127.0.0.1"
     server_port = 0x4000
@@ -12,6 +13,7 @@ def recv():
         recv_data, recv_addr = sock.recvfrom(1024)
         print("recv", recv_data, recv_addr)
         sock.sendto(recv_data, recv_addr)
+
 
 if __name__ == "__main__":
     recv()
