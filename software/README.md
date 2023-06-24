@@ -1,59 +1,34 @@
-# Example scripts
+# A Python Library for controlling QuEL Clock Master 
 
-- `clear.sh` - clear master clock and kick synchronous with target clients
-- `readclock.sh` - read master clock
-- `qubemasterclient.py` - An utility script to control qube master
-- `sequececlient.py` - A test script to make registrations of commands for target clients
-- `reset.py` - A reset script of time-synch sequencer.
+クロックマスタと各制御装置との同期を取るためのライブラリと、そのライブラリをシェルからお手軽に使うためのコマンド群を提供します。
 
-## blocked and reset
+# Build and Install with `pip`
 
-### blocked by trying to reset invalid client
-
-```
-$ sh ./clear.sh 10.2.0.200
-open: 10.3.0.255:16384
-b'4\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-b'3\x00\x00\x00\x00\x00\x00\x00\xe4\xcb\x9e\x0e\x00\x00\x00\x00' ('10.3.0.255', 16384)
-open: 10.3.0.255:16384
-kick: 0x0a0200c8:16385
-b'2\x00\x00\x00\x00\x00\x00\x00\n\x02\x00\xc8\x00\x00@\x01'
-b'\xfe\x00\x00\x00\x00\x00\x00\x00M\xb3\x8f\x07\x00\x00\x00\x00' ('10.3.0.255', 16384)
+適切なPythonの仮想環境にて、次のコマンドを実行してください。パッケージのビルド及びインストールが完了します。
+```shell
+cd qubemaster/software
+rm -rf dist
+python setup.py bdist_wheel
+pip install dist/*.whl
 ```
 
-`0xfe` indicates time-out error.
+なお、`pipenv` をお使いの場合には、dist 以下に生成された quel_clock_master*.whl を適切な場所にコピーしてご使用ください。
 
-### Blocked by the previous invald client
+# Console Commands
+パッケージをインストールすると、次の4つのコマンドがシェルから利用できるようになります。
+各コマンドを `-h` を付けて実行すると、引数の詳細が表示されます。
 
-```
-$ sh ./clear.sh 10.2.0.16
-open: 10.3.0.255:16384
-b'4\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-b'3\x00\x00\x00\x00\x00\x00\x00\xad\x01\xe6-\x01\x00\x00\x00' ('10.3.0.255', 16384)
-open: 10.3.0.255:16384
-kick: 0x0a020010:16385
-b'2\x00\x00\x00\x00\x00\x00\x00\n\x02\x00\x10\x00\x00@\x01'
-b'\xff\x00\x00\x00\x00\x00\x00\x00t&+\x00\x00\x00\x00\x00' ('10.3.0.255', 16384)
-```
+- `quel_clock_master_read`: 指定したIPアドレスのマスターのクロックカウンタを取得します。
+- `quel_clock_master_kick`: マスタのIPアドレスと複数の制御装置のIPアドレスを指定して使います。マスタと指定の各制御装置とを同期します。
+- `quel_clock_master_clear`: 指定したIPアドレスのマスターのクロックカウンタをゼロにクリアします。複数の制御装置のIPアドレスを同時に引数に与えると、クリアに引き続いて、マスタと各制御装置とを同期します。
+- `quel_clock_master_reset`: 指定したIPアドレスのマスターをリセットします。**`kick`などのコマンドが動作しなくなった場合に使うと、マスタが復旧します。** ただし、内部のクロックカウントが0にリセットされるので、マスタと各制御装置との再同期が必要になります。   
 
-`0xff` indicates blocked error
+## 注意点
+`quel_clock_master_kick` に与える制御装置のアドレスに不正なものがあると、クロックマスタ内のステートマシンが一部ハングアップします。
+これが発生してしまうと、`quel_clock_master_reset` を実行するまで、`kick`が動作しなくなるので注意が必要です。
 
-### Reset the inner sequence
+# Library
 
-```
-$ python3 reset.py
-[Reset]: dummy message
-```
-
-### Reset valid client
-
-```
-$ sh ./clear.sh 10.2.0.16
-open: 10.3.0.255:16384
-b'4\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-b'3\x00\x00\x00\x00\x00\x00\x00E\xc06*\x00\x00\x00\x00' ('10.3.0.255', 16384)
-open: 10.3.0.255:16384
-kick: 0x0a020010:16385
-b'2\x00\x00\x00\x00\x00\x00\x00\n\x02\x00\x10\x00\x00@\x01'
-b'3\x00\x00\x00\x00\x00\x00\x00\xac0\x1e\x00\x00\x00\x00\x00' ('10.3.0.255', 16384)
-```
+まだ、文書化できていないので、ソースコードをご覧ください。
+[qubemaster/software/quel_clock_master/quelmasterclient.py](quel_clock_master/qubemasterclient.py) の `if __name__ == '__main___'`
+以降が特に参考になると思います。
