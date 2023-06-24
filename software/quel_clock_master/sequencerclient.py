@@ -1,4 +1,3 @@
-import argparse
 import socket
 import struct
 
@@ -26,6 +25,11 @@ class SequencerClient(object):
             print(e)
             raise
 
+    def kick_softreset(self):
+        data = struct.pack('BBBB', 0xE0, 0x00, 0x00, 0x00)
+        ret,addr = self.send_recv(data)
+        print(ret)
+
     def add_sequencer(self, value):
         data = struct.pack("BB", 0x22, 0)
         data += struct.pack("HH", 0, 0)
@@ -38,13 +42,22 @@ class SequencerClient(object):
 
 
 if __name__ == "__main__":
+    import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default="16384")
-    parser.add_argument("--sec", type=int, default=10)
-    parser.add_argument("targets", nargs="*")
+    parser.add_argument("--port", type=int, default="16384", help="port to SequencerUnit")
+    parser.add_argument("--command", type=str, choices=("sched", "reset"), required=True, help="command to execute")
+    parser.add_argument("--sec", type=int, default=10, help="scheduled time in seconds to start AWGs")
+    parser.add_argument("ipaddr_targets", type=str, nargs="+", help="IP addresses of the target boxes")
     args = parser.parse_args()
 
-    for a in args.targets:
-        client = SequencerClient(a, int(args.port))
-        r, a = client.add_sequencer(args.sec * 125000000)  # 125M = 1sec
-        print(r, a)
+    for ipaddr_target in args.ipaddr_targets:
+        target = SequencerClient(ipaddr_target, args.port)
+        if args.command == "reset":
+            target.kick_softreset()
+        elif args.command == "sched":
+            r, a = target.add_sequencer(args.sec * 125000000)  # 125M = 1sec
+            print(r, a)
+        else:
+            # never happens
+            raise AssertionError
