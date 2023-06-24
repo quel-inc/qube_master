@@ -49,6 +49,12 @@ class QuBEMasterClient:
         reply, raddr = self.send_recv(data)
         if raddr is not None:
             logger.debug(f"receiving {':'.join(['{0:02x}'.format(x) for x in reply])} from {raddr[0]:s}:{raddr[1]:d}")
+
+        if raddr == (self._master_ip_addr, self._master_port) and reply[0] in (0xFE, 0xFF):
+            logger.warning(
+                "a state machine of the clock master may be hanged up, please **RESET** it before re-trying 'kick'."
+            )
+
         return raddr == (self._master_ip_addr, self._master_port) and reply[0] == 0x33
 
     def clear_clock(self, value: int = 0) -> bool:

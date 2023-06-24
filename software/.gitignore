@@ -4,7 +4,8 @@ venv*/
 *.egg-info/
 *~
 
-.pytest_cache
+.mypy_cache/
+.pytest_cache/
 .coverage
 
 .idea/
