@@ -1,7 +1,6 @@
 import argparse
 import socket
 import struct
-import sys
 
 
 class SequencerClient(object):
