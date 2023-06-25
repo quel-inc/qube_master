@@ -26,8 +26,8 @@ class SequencerClient(object):
             raise
 
     def kick_softreset(self):
-        data = struct.pack('BBBB', 0xE0, 0x00, 0x00, 0x00)
-        ret,addr = self.send_recv(data)
+        data = struct.pack("BBBB", 0xE0, 0x00, 0x00, 0x00)
+        ret, addr = self.send_recv(data)
         print(ret)
 
     def add_sequencer(self, value):
