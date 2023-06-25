@@ -100,7 +100,7 @@ def read_target_main():
     flag = True
     for ipaddr_target in args.ipaddr_targets:
         q = QuBEMonitor(ipaddr_target, args.port_monitor)
-        retcode, clock = q.read_time()
+        retcode, clock = q.read_clock()
         if retcode:
             logger.info(f"{ipaddr_target}: {clock:d}")
         else:
@@ -129,7 +129,7 @@ def read_main():
 
     for ipaddr_target in args.ipaddr_targets:
         q = QuBEMonitor(ipaddr_target, args.port_monitor)
-        retcode, clock = q.read_time()
+        retcode, clock = q.read_clock()
         if retcode:
             logger.info(f"{ipaddr_target}: {clock:d}")
         else:

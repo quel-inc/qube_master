@@ -20,7 +20,7 @@ class QuBEMonitor(SimpleUdpClient):
         super().__init__(target_ipaddr, receiver_limit_by_bind, timeout)
         self._port: int = self.DEFAULT_PORT if target_port is None else target_port
 
-    def read_time(self) -> Tuple[bool, int]:
+    def read_clock(self) -> Tuple[bool, int]:
         data = struct.pack("BBBB", 0x00, 0x00, 0x00, 0x04)
 
         logger.debug(f"sending {':'.join(['{0:02x}'.format(x) for x in data])}")
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     for ipaddr_target in args.ipaddr_targets:
         q = QuBEMonitor(ipaddr_target, args.port)
-        retcode, clock = q.read_time()
+        retcode, clock = q.read_clock()
         if retcode:
             logger.info(f"{ipaddr_target}: {clock}")
         else:
