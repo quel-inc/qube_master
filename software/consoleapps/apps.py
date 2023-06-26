@@ -2,25 +2,33 @@ import argparse
 import logging
 import sys
 
-from quel_clock_master import QuBEMasterClient, QuBEMonitor
+from quel_clock_master import QuBEMasterClient, SequencerClient
 
 logger = logging.getLogger(__name__)
 
 
-def init_parser() -> argparse.ArgumentParser:
+def init_parser_for_master() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("ipaddr_master", type=str, help="IP address of the clock master")
-    parser.add_argument("--port", type=int, default="16384")
-    parser.add_argument("--reset_port", type=int, default="16385")
+    parser.add_argument("--master_port", type=int, default="16384")
+    parser.add_argument("--master_reset_port", type=int, default="16385")
+    return parser
+
+
+def init_parser_for_seqr() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()  # no arguments about master is required.
+    parser.add_argument("ipaddr_targets", type=str, nargs="+", help="IP addresses of the target boxes")
+    parser.add_argument("--seqr_port", type=int, default=SequencerClient.DEFAULT_SEQR_PORT)
+    parser.add_argument("--synch_port", type=int, default=SequencerClient.DEFAULT_SYNCH_PORT)
     return parser
 
 
 def reset_main():
     logging.basicConfig(level=logging.INFO, format="{asctime} [{levelname:.4}] {name}: {message}", style="{")
 
-    parser = init_parser()
+    parser = init_parser_for_master()
     args = parser.parse_args()
-    proxy = QuBEMasterClient(args.ipaddr_master, args.port, args.reset_port)
+    proxy = QuBEMasterClient(args.ipaddr_master, args.master_port, args.master_reset_port)
 
     retcode = proxy.reset()
     if retcode:
@@ -34,9 +42,9 @@ def reset_main():
 def read_master_main():
     logging.basicConfig(level=logging.INFO, format="{asctime} [{levelname:.4}] {name}: {message}", style="{")
 
-    parser = init_parser()
+    parser = init_parser_for_master()
     args = parser.parse_args()
-    proxy = QuBEMasterClient(args.ipaddr_master, args.port, args.reset_port)
+    proxy = QuBEMasterClient(args.ipaddr_master, args.master_port, args.master_reset_port)
 
     retcode, clock = proxy.read_clock(0)
     if retcode:
@@ -50,10 +58,10 @@ def read_master_main():
 def clear_main():
     logging.basicConfig(level=logging.INFO, format="{asctime} [{levelname:.4}] {name}: {message}", style="{")
 
-    parser = init_parser()
+    parser = init_parser_for_master()
     parser.add_argument("ipaddr_targets", type=str, nargs="*", help="IP addresses of target boxes to kick")
     args = parser.parse_args()
-    proxy = QuBEMasterClient(args.ipaddr_master, args.port, args.reset_port)
+    proxy = QuBEMasterClient(args.ipaddr_master, args.master_port, args.master_reset_port)
 
     retcode = proxy.clear_clock(0)
     if retcode:
@@ -76,10 +84,10 @@ def clear_main():
 def kick_main():
     logging.basicConfig(level=logging.INFO, format="{asctime} [{levelname:.4}] {name}: {message}", style="{")
 
-    parser = init_parser()
+    parser = init_parser_for_master()
     parser.add_argument("ipaddr_targets", type=str, nargs="+", help="IP addresses of target boxes to kick")
     args = parser.parse_args()
-    proxy = QuBEMasterClient(args.ipaddr_master, args.port, args.reset_port)
+    proxy = QuBEMasterClient(args.ipaddr_master, args.master_port, args.master_reset_port)
 
     retcode = proxy.kick_clock_synch(args.ipaddr_targets)
     if retcode:
@@ -92,14 +100,12 @@ def kick_main():
 def read_target_main():
     logging.basicConfig(level=logging.INFO, format="{asctime} [{levelname:.4}] {name}: {message}", style="{")
 
-    parser = init_parser()
-    parser.add_argument("ipaddr_targets", type=str, nargs="+", help="IP addresses of the target boxes")
-    parser.add_argument("--port_monitor", type=int, default=QuBEMonitor.DEFAULT_PORT)
+    parser = init_parser_for_seqr()
     args = parser.parse_args()
 
     flag = True
     for ipaddr_target in args.ipaddr_targets:
-        q = QuBEMonitor(ipaddr_target, args.port_monitor)
+        q = SequencerClient(ipaddr_target, args.seqr_port, args.synch_port)
         retcode, clock = q.read_clock()
         if retcode:
             logger.info(f"{ipaddr_target}: {clock:d}")
@@ -113,11 +119,12 @@ def read_target_main():
 def read_main():
     logging.basicConfig(level=logging.INFO, format="{asctime} [{levelname:.4}] {name}: {message}", style="{")
 
-    parser = init_parser()
+    parser = init_parser_for_master()
     parser.add_argument("ipaddr_targets", type=str, nargs="*", help="IP addresses of the target boxes")
-    parser.add_argument("--port_monitor", type=int, default=QuBEMonitor.DEFAULT_PORT)
+    parser.add_argument("--seqr_port", type=int, default=SequencerClient.DEFAULT_SEQR_PORT)
+    parser.add_argument("--synch_port", type=int, default=SequencerClient.DEFAULT_SYNCH_PORT)
     args = parser.parse_args()
-    proxy = QuBEMasterClient(args.ipaddr_master, args.port, args.reset_port)
+    proxy = QuBEMasterClient(args.ipaddr_master, args.master_port, args.master_reset_port)
 
     flag = True
     retcode, clock = proxy.read_clock(0)
@@ -128,7 +135,7 @@ def read_main():
         flag = False
 
     for ipaddr_target in args.ipaddr_targets:
-        q = QuBEMonitor(ipaddr_target, args.port_monitor)
+        q = SequencerClient(ipaddr_target, args.seqr_port, args.synch_port)
         retcode, clock = q.read_clock()
         if retcode:
             logger.info(f"{ipaddr_target}: {clock:d}")

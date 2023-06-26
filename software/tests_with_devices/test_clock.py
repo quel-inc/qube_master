@@ -3,7 +3,7 @@ from typing import Any, Dict, Final, Tuple
 
 import pytest
 
-from quel_clock_master import QuBEMasterClient, QuBEMonitor
+from quel_clock_master import QuBEMasterClient, SequencerClient
 
 TIME_PRECISION: Final[float] = 0.005  # ~ 5ms
 CLOCK_RATE: Final[float] = 125000000.0  # Hz
@@ -22,21 +22,21 @@ DEVICE_SETTINGS: Final[Dict[str, Dict[str, Any]]] = {
 
 
 @pytest.fixture(scope="session", params=(DEVICE_SETTINGS,))
-def proxies(request) -> Tuple[QuBEMasterClient, Dict[str, QuBEMonitor]]:
+def proxies(request) -> Tuple[QuBEMasterClient, Dict[str, SequencerClient]]:
     param0 = request.param
     master = QuBEMasterClient(param0["MASTER"]["ipaddr"])
     retcode = master.reset()
     assert retcode
 
     target0_ipaddr = param0["TARGET0"]["ipaddr"]
-    target0 = QuBEMonitor(target0_ipaddr)
+    target0 = SequencerClient(target0_ipaddr)
     target1_ipaddr = param0["TARGET1"]["ipaddr"]
-    target1 = QuBEMonitor(target1_ipaddr)
+    target1 = SequencerClient(target1_ipaddr)
 
     return master, {target0_ipaddr: target0, target1_ipaddr: target1}
 
 
-def test_clear(proxies: Tuple[QuBEMasterClient, Dict[str, QuBEMonitor]]):
+def test_clear(proxies: Tuple[QuBEMasterClient, Dict[str, SequencerClient]]):
     master, _ = proxies
 
     t0 = (1 << 32) - (3 * int(CLOCK_RATE))
@@ -49,7 +49,7 @@ def test_clear(proxies: Tuple[QuBEMasterClient, Dict[str, QuBEMonitor]]):
     assert abs((t1 - t0) / CLOCK_RATE) < TIME_PRECISION
 
 
-def test_read_clock_master(proxies: Tuple[QuBEMasterClient, Dict[str, QuBEMonitor]]):
+def test_read_clock_master(proxies: Tuple[QuBEMasterClient, Dict[str, SequencerClient]]):
     master, _ = proxies
     duration = 1
 
@@ -61,7 +61,7 @@ def test_read_clock_master(proxies: Tuple[QuBEMasterClient, Dict[str, QuBEMonito
     assert abs((t1[1] - t0[1]) / CLOCK_RATE - duration) < TIME_PRECISION
 
 
-def test_read_clock(proxies: Tuple[QuBEMasterClient, Dict[str, QuBEMonitor]]):
+def test_read_clock(proxies: Tuple[QuBEMasterClient, Dict[str, SequencerClient]]):
     _, targets = proxies
     duration = 1
 
@@ -74,7 +74,7 @@ def test_read_clock(proxies: Tuple[QuBEMasterClient, Dict[str, QuBEMonitor]]):
         assert abs((t1[1] - t0[1]) / CLOCK_RATE - duration) < TIME_PRECISION
 
 
-def test_kick(proxies: Tuple[QuBEMasterClient, Dict[str, QuBEMonitor]]):
+def test_kick(proxies: Tuple[QuBEMasterClient, Dict[str, SequencerClient]]):
     master, targets = proxies
 
     time.sleep(0.1)
@@ -90,7 +90,7 @@ def test_kick(proxies: Tuple[QuBEMasterClient, Dict[str, QuBEMonitor]]):
 
 
 def test_nonexistent_target():
-    target = QuBEMonitor("10.193.194.195")
+    target = SequencerClient("10.193.194.195")
     retcode, _ = target.read_clock()
     assert not retcode
 
