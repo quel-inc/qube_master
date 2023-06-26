@@ -20,8 +20,15 @@ class SequencerClient(SimpleUdpClient):
         timeout=SimpleUdpClient.DEFAULT_TIMEOUT,
     ):
         super().__init__(target_ipaddr, receiver_limit_by_bind, timeout)
-        self._synch_port: int = self.DEFAULT_SYNCH_PORT if synch_port is None else synch_port
         self._seqr_port: int = self.DEFAULT_SEQR_PORT if seqr_port is None else seqr_port
+        self._synch_port: int = self.DEFAULT_SYNCH_PORT if synch_port is None else synch_port
+
+    @property
+    def ipaddress(self) -> str:
+        """returns IP adderess to allow QubeMasterClient to kick this box
+        :return: IP address of the sequencer subsystem of the box
+        """
+        return self._server_ipaddr
 
     def kick_softreset(self) -> bool:
         data = struct.pack("BBBB", 0xE0, 0x00, 0x00, 0x00)
@@ -82,7 +89,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     current: int = 0
-    if args.commnad == "sched":
+    if args.command == "sched":
         target0 = SequencerClient(args.ipaddr_targets[0], args.seqr_port, args.synch_port)
         retcode0, current = target0.read_clock()
         if not retcode0:
@@ -91,7 +98,7 @@ if __name__ == "__main__":
 
     flag: bool = True
     for ipaddr_target in args.ipaddr_targets:
-        target = SequencerClient(ipaddr_target, args.port)
+        target = SequencerClient(ipaddr_target, args.seqr_port, args.synch_port)
         if args.command == "reset":
             retcode = target.kick_softreset()
             if retcode:

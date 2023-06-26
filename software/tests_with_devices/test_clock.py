@@ -61,6 +61,13 @@ def test_read_clock_master(proxies: Tuple[QuBEMasterClient, Dict[str, SequencerC
     assert abs((t1[1] - t0[1]) / CLOCK_RATE - duration) < TIME_PRECISION
 
 
+def test_ipaddress(proxies: Tuple[QuBEMasterClient, Dict[str, SequencerClient]]):
+    _, targets = proxies
+
+    for ipaddress, target in targets.items():
+        assert target.ipaddress == ipaddress
+
+
 def test_read_clock(proxies: Tuple[QuBEMasterClient, Dict[str, SequencerClient]]):
     _, targets = proxies
     duration = 1
