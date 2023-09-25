@@ -59,6 +59,7 @@ class SequencerClient(SimpleUdpClient):
 
         logger.debug(f"sending {':'.join(['{0:02x}'.format(x) for x in data])}")
         reply, raddr = self._send_recv_generic(self._synch_port, data)
+        flag: bool = False
         if raddr is None:
             logger.warning("communication failure in clear_clock()")
             clock = -1
@@ -66,10 +67,14 @@ class SequencerClient(SimpleUdpClient):
             logger.debug(f"receiving {':'.join(['{0:02x}'.format(x) for x in reply])} from {raddr[0]:s}:{raddr[1]:d}")
             # if reply[0] != 0x33:
             #    logger.warning("unexpected reply packet starting with {reply[0]:02x} is received")
+            try:
+                clock = struct.unpack(">Q", reply[4:12])[0]
+                flag = True
+            except struct.error as e:
+                logger.error(e)
+                clock = -1
 
-            clock = struct.unpack(">Q", reply[4:12])[0]
-
-        return (raddr is not None), clock
+        return flag, clock
 
 
 if __name__ == "__main__":
