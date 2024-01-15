@@ -128,9 +128,12 @@ def read_target_main():
     flag = True
     for ipaddr_target in args.ipaddr_targets:
         q = SequencerClient(ipaddr_target, args.seqr_port, args.synch_port)
-        retcode, clock = q.read_clock()
+        retcode, clock, last_sysref = q.read_clock()
         if retcode:
-            logger.info(f"{ipaddr_target}: {clock:d}")
+            if last_sysref > 0:
+                logger.info(f"{ipaddr_target}: {clock:d} {last_sysref:d}")
+            else:
+                logger.info(f"{ipaddr_target}: {clock:d}")
         else:
             logger.info(f"{ipaddr_target}: not found")
             flag = False
@@ -161,9 +164,12 @@ def read_main():
 
     for ipaddr_target in args.ipaddr_targets:
         q = SequencerClient(ipaddr_target, args.seqr_port, args.synch_port)
-        retcode, clock = q.read_clock()
+        retcode, clock, last_sysref = q.read_clock()
         if retcode:
-            logger.info(f"{ipaddr_target}: {clock:d}")
+            if last_sysref > 0:
+                logger.info(f"{ipaddr_target}: {clock:d} {last_sysref:d}")
+            else:
+                logger.info(f"{ipaddr_target}: {clock:d}")
         else:
             logger.info(f"{ipaddr_target}: not found")
             flag = False
