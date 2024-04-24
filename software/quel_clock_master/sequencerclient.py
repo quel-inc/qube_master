@@ -30,7 +30,7 @@ class SequencerClient(SimpleUdpClient):
         """
         return self._server_ipaddr
 
-    def kick_softreset(self) -> bool:
+    def reset_wave_subsystem(self) -> bool:
         """reset the state machine of wave subsystem to recover from illegal internal states. be aware that this may
         result in the degenerated link status between FPGA and AD9082s.
         :return: True if success
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     for ipaddr_target in args.ipaddr_targets:
         target = SequencerClient(ipaddr_target, args.seqr_port, args.synch_port)
         if args.command == "reset":
-            retcode = target.kick_softreset()
+            retcode = target.reset_wave_subsystem()
             if retcode:
                 logger.info(f"{ipaddr_target}: success")
             else:
