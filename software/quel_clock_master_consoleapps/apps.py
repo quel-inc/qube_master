@@ -39,7 +39,7 @@ def reset_master_main():
         sys.exit(1)
 
 
-def reset_target_main():
+def reset_wave_subsystem_main():
     logging.basicConfig(level=logging.INFO, format="{asctime} [{levelname:.4}] {name}: {message}", style="{")
 
     parser = init_parser_for_seqr("resetting the FPGA of the given client nodes")
@@ -48,7 +48,7 @@ def reset_target_main():
     flag = True
     for ipaddr_target in args.ipaddr_targets:
         q = SequencerClient(ipaddr_target, args.seqr_port, args.synch_port)
-        retcode = q.kick_softreset()
+        retcode = q.reset_wave_subsystem()
         if not retcode:
             flag = False
 
