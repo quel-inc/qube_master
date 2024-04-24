@@ -48,12 +48,47 @@ class SequencerClient(SimpleUdpClient):
         data += struct.pack("<H", awg_bitmap)  # target AWG
         data += struct.pack("BBBBB", 0, 0, 0, 0, 0)  # padding
         data += struct.pack("B", 0)  # entry id
-        _, raddr = self._send_recv_generic(self._seqr_port, data)
-        if raddr is None:
-            logger.warning(f"communication failure with {self._server_ipaddr} in add_sequencer()")
-        else:
+        reply, raddr = self._send_recv_generic(self._seqr_port, data)
+        if (raddr is not None) and len(reply) == 8 and reply[0] == 0x23:
             logger.info(f"scheduled command is added to {self._server_ipaddr} successfully")
-        return raddr is not None
+            return True
+        else:
+            logger.warning(f"communication failure with {self._server_ipaddr} in add_sequencer()")
+            return False
+
+    def clear_sequencer(self) -> bool:
+        data = struct.pack("BB", 0x24, 0)
+        data += struct.pack("HHH", 0, 0, 0)
+        reply, raddr = self._send_recv_generic(self._seqr_port, data)
+        if (raddr is not None) and len(reply) == 8 and reply[0] == 0x25:
+            logger.info(f"scheduled commands of {self._server_ipaddr} are canceled successfully")
+            return True
+        else:
+            logger.warning(f"communication failure with {self._server_ipaddr} in clear_sequencer()")
+            return False
+
+    def terminate_awgs(self) -> bool:
+        data = struct.pack("BB", 0x28, 0)
+        data += struct.pack("HHH", 0, 0, 0)
+        reply, raddr = self._send_recv_generic(self._seqr_port, data)
+        if (raddr is not None) and len(reply) == 8 and reply[0] == 0x29:
+            logger.info(f"awgs of {self._server_ipaddr} are terminated successfully")
+            return True
+        else:
+            logger.warning(f"communication failure with {self._server_ipaddr} in terminate_awgs()")
+            return False
+
+    def clear_and_terminate(self) -> bool:
+        data = struct.pack("BB", 0x2C, 0)
+        data += struct.pack("HHH", 0, 0, 0)
+        reply, raddr = self._send_recv_generic(self._seqr_port, data)
+        if (raddr is not None) and len(reply) == 8 and reply[0] == 0x2D:
+            logger.info(f"scheduled commands of {self._server_ipaddr} are canceled successfully")
+            logger.info(f"awgs of {self._server_ipaddr} are terminated successfully")
+            return True
+        else:
+            logger.warning(f"communication failure with {self._server_ipaddr} in clear_and_terminate()")
+            return False
 
     def read_clock(self) -> Tuple[bool, int, int]:
         data = struct.pack("BBBB", 0x00, 0x00, 0x00, 0x04)
@@ -99,7 +134,11 @@ if __name__ == "__main__":
     parser.add_argument("--seqr_port", type=int, default=SequencerClient.DEFAULT_SEQR_PORT)
     parser.add_argument("--synch_port", type=int, default=SequencerClient.DEFAULT_SYNCH_PORT)
     parser.add_argument(
-        "--command", type=str, choices=("add", "reset", "read"), required=True, help="command to execute"
+        "--command",
+        type=str,
+        choices=("add", "clear", "term", "ct", "reset", "read"),
+        required=True,
+        help="command to execute",
     )
     parser.add_argument("--delta", type=float, default=5.0, help="delta time from now to start AWGs")
     args = parser.parse_args()
@@ -118,25 +157,46 @@ if __name__ == "__main__":
         if args.command == "reset":
             retcode = target.kick_softreset()
             if retcode:
-                logger.warning(f"{ipaddr_target}: success")
+                logger.info(f"{ipaddr_target}: success")
             else:
                 flag = False
-                logger.warning(f"{ipaddr_target}: failed")
+                logger.error(f"{ipaddr_target}: failed")
         elif args.command == "add":
             ttx = current + int(args.delta * 125000000)  # 125M = 1sec
             retcode = target.add_sequencer(ttx)
             if retcode:
-                logger.warning(f"{ipaddr_target}: success")
+                logger.info(f"{ipaddr_target}: success")
             else:
                 flag = False
-                logger.warning(f"{ipaddr_target}: failed")
+                logger.error(f"{ipaddr_target}: failed")
+        elif args.command == "clear":
+            retcode = target.clear_sequencer()
+            if retcode:
+                logger.info(f"{ipaddr_target}: success")
+            else:
+                flag = False
+                logger.error(f"{ipaddr_target}: failed")
+        elif args.command == "term":
+            retcode = target.terminate_awgs()
+            if retcode:
+                logger.info(f"{ipaddr_target}: success")
+            else:
+                flag = False
+                logger.error(f"{ipaddr_target}: failed")
+        elif args.command == "ct":
+            retcode = target.clear_and_terminate()
+            if retcode:
+                logger.info(f"{ipaddr_target}: success")
+            else:
+                flag = False
+                logger.error(f"{ipaddr_target}: failed")
         elif args.command == "read":
             retcode, clock, last_sysref = target.read_clock()
             if retcode:
                 logger.info(f"{ipaddr_target}: {clock} {last_sysref}")
             else:
                 flag = False
-                logger.info(f"{ipaddr_target}: failed")
+                logger.error(f"{ipaddr_target}: failed")
         else:
             # never happens
             raise AssertionError
