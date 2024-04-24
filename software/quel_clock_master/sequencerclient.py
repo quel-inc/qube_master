@@ -25,12 +25,17 @@ class SequencerClient(SimpleUdpClient):
 
     @property
     def ipaddress(self) -> str:
-        """returns IP adderess to allow QubeMasterClient to kick this box
-        :return: IP address of the sequencer subsystem of the box
+        """returns IP address to allow QubeMasterClient to kick this box.
+        :return: IP address of the sequencer subsystem of the box.
         """
         return self._server_ipaddr
 
     def kick_softreset(self) -> bool:
+        """reset the state machine of wave subsystem to recover from illegal internal states. be aware that this may
+        result in the degenerated link status between FPGA and AD9082s.
+        :return: True if success
+        """
+        # TODO: move it to the right place.
         data = struct.pack("BBBB", 0xE0, 0x00, 0x00, 0x00)
         _, raddr = self._send_recv_generic(self._seqr_port, data)
         if raddr is None:
@@ -40,6 +45,11 @@ class SequencerClient(SimpleUdpClient):
         return raddr is not None
 
     def add_sequencer(self, clock: int, awg_bitmap: int = 0xFFFF) -> bool:
+        """add a time-trigger to activate AWGs.
+        :param clock: clock count to activate the AWGs.
+        :param awg_bitmap: a set of AWGs to activate in a bitmap.
+        :return: True if success.
+        """
         # TODO: allow to add multiple commands at the same time
         data = struct.pack("BB", 0x22, 0)
         data += struct.pack("HH", 0, 0)
@@ -57,6 +67,9 @@ class SequencerClient(SimpleUdpClient):
             return False
 
     def clear_sequencer(self) -> bool:
+        """cancel the previously added time-trigger.
+        :return: True if success.
+        """
         data = struct.pack("BB", 0x24, 0)
         data += struct.pack("HHH", 0, 0, 0)
         reply, raddr = self._send_recv_generic(self._seqr_port, data)
@@ -68,6 +81,9 @@ class SequencerClient(SimpleUdpClient):
             return False
 
     def terminate_awgs(self) -> bool:
+        """terminate all the AWGs.
+        :return: True if success.
+        """
         data = struct.pack("BB", 0x28, 0)
         data += struct.pack("HHH", 0, 0, 0)
         reply, raddr = self._send_recv_generic(self._seqr_port, data)
@@ -79,6 +95,9 @@ class SequencerClient(SimpleUdpClient):
             return False
 
     def clear_and_terminate(self) -> bool:
+        """cancel the previously added time-trigger and terminate all the AWGs at the same time.
+        :return: True if success.
+        """
         data = struct.pack("BB", 0x2C, 0)
         data += struct.pack("HHH", 0, 0, 0)
         reply, raddr = self._send_recv_generic(self._seqr_port, data)
@@ -91,6 +110,10 @@ class SequencerClient(SimpleUdpClient):
             return False
 
     def read_clock(self) -> Tuple[bool, int, int]:
+        """read the current clock count of the box
+        :return:a tuple of success code in boolean, the current clock count, and the latched clock count at the last
+                SYSREF edge.
+        """
         data = struct.pack("BBBB", 0x00, 0x00, 0x00, 0x04)
 
         logger.debug(f"sending {':'.join(['{0:02x}'.format(x) for x in data])}")
