@@ -40,6 +40,7 @@ class SequencerClient(SimpleUdpClient):
         return raddr is not None
 
     def add_sequencer(self, clock: int, awg_bitmap: int = 0xFFFF) -> bool:
+        # TODO: allow to add multiple commands at the same time
         data = struct.pack("BB", 0x22, 0)
         data += struct.pack("HH", 0, 0)
         data += struct.pack(">H", 16)  # 1-command = 16bytes
@@ -49,7 +50,7 @@ class SequencerClient(SimpleUdpClient):
         data += struct.pack("B", 0)  # entry id
         _, raddr = self._send_recv_generic(self._seqr_port, data)
         if raddr is None:
-            logger.warning(f"communication failure with {self._server_ipaddr} in kick_sequencer()")
+            logger.warning(f"communication failure with {self._server_ipaddr} in add_sequencer()")
         else:
             logger.info(f"scheduled command is added to {self._server_ipaddr} successfully")
         return raddr is not None
@@ -98,13 +99,13 @@ if __name__ == "__main__":
     parser.add_argument("--seqr_port", type=int, default=SequencerClient.DEFAULT_SEQR_PORT)
     parser.add_argument("--synch_port", type=int, default=SequencerClient.DEFAULT_SYNCH_PORT)
     parser.add_argument(
-        "--command", type=str, choices=("sched", "reset", "read"), required=True, help="command to execute"
+        "--command", type=str, choices=("add", "reset", "read"), required=True, help="command to execute"
     )
     parser.add_argument("--delta", type=float, default=5.0, help="delta time from now to start AWGs")
     args = parser.parse_args()
 
     current: int = 0
-    if args.command == "sched":
+    if args.command == "add":
         target0 = SequencerClient(args.ipaddr_targets[0], args.seqr_port, args.synch_port)
         retcode0, current, _ = target0.read_clock()
         if not retcode0:
@@ -121,7 +122,7 @@ if __name__ == "__main__":
             else:
                 flag = False
                 logger.warning(f"{ipaddr_target}: failed")
-        elif args.command == "sched":
+        elif args.command == "add":
             ttx = current + int(args.delta * 125000000)  # 125M = 1sec
             retcode = target.add_sequencer(ttx)
             if retcode:
