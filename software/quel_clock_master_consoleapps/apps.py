@@ -175,3 +175,25 @@ def read_main():
             flag = False
 
     sys.exit(0 if flag else 1)
+
+
+def clear_sequence():
+    logging.basicConfig(level=logging.INFO, format="{asctime} [{levelname:.4}] {name}: {message}", style="{")
+
+    parser = init_parser_for_seqr("clearing the command sequence of the given client nodes")
+    parser.add_argument("--terminate", action="store_true")
+    args = parser.parse_args()
+
+    flag = True
+    for ipaddr_target in args.ipaddr_targets:
+        q = SequencerClient(ipaddr_target, args.seqr_port, args.synch_port)
+        if args.terminate:
+            retcode = q.clear_and_terminate()
+        else:
+            retcode = q.clear_sequencer()
+
+        if not retcode:
+            logger.warning(f"{ipaddr_target}: failed to clear command sequence")
+            flag = False
+
+    sys.exit(0 if flag else 1)
